@@ -1,10 +1,10 @@
-## Zoner
+# Zoner
 
 Zoner is a small command line tool for easing the construction of [Zonelets](https://zonelets.net/)-style blogs. It's meant to be as simple and accessible as possible.
 
 Download the binaries on itch: <https://ryantrawick.itch.io/zoner>
 
-### Features
+## Features
 
 - Simple drag and drop or command line build interface.
 - Write your pages in Markdown and let Zoner handle the HTML (or use HTML by itself).
@@ -13,7 +13,7 @@ Download the binaries on itch: <https://ryantrawick.itch.io/zoner>
 - Disqus comment support.
 - Backwards compatibility with existing Zonelets.
 
-### Build
+## Build
 
 ```
 dotnet restore
@@ -22,11 +22,11 @@ dotnet publish -c release -r <RUNTIME>
 
 Requires .NET 5.0 to build, does not require .NET libraries to run.
 
-### Dependencies
+## Dependencies
 
 Zoner makes use of [Markdig](https://github.com/xoofx/markdig) for Markdown processing and [HtmlAgilityPack](https://www.nuget.org/packages/HtmlAgilityPack/) for document manipulation.
 
-### Future
+## Future
 
 I'm intimidated by all the cool projects on here and I love how small the build sizes are. I'd like to port this tool to C so it'll be smaller, but I'm not quite experienced enough yet. I found [Node](https://sr.ht/~tagglink/node/) and I'll probably take a look at that in the future, you might want to give it a try if you don't like the size of Zoner.
 
