@@ -15,8 +15,10 @@ Download the binaries on itch: <https://ryantrawick.itch.io/zoner>
 
 ### Build
 
-```dotnet restore
-dotnet publish -c release -r <RUNTIME>```
+```
+dotnet restore
+dotnet publish -c release -r <RUNTIME>
+```
 
 Requires .NET 5.0 to build, does not require .NET libraries to run.
 
