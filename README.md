@@ -2,6 +2,8 @@
 
 Zoner is a small command line tool for easing the construction of [Zonelets](https://zonelets.net/)-style blogs. It's meant to be as simple and accessible as possible.
 
+Check out the example site: <https://zone-builder.neocities.org/>
+
 Download the binaries on itch: <https://ryantrawick.itch.io/zoner>
 
 ## Features
