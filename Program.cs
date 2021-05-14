@@ -255,6 +255,7 @@ class Program {
 					// Build post list if this site has posts
 					if (Directory.Exists(Path.Combine(directoryPath, "posts"))) {
 						string[] posts = Directory.GetFiles(Path.Combine(directoryPath, "posts"));
+						Array.Sort(posts);
 
 						for (int i = posts.Length - 1; i >= 0; i--) {
 							if (Directory.Exists(posts[i])) {
