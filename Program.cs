@@ -17,6 +17,8 @@ class Program {
 			return;
 		}
 
+		args[0] = Path.GetFullPath(args[0]).TrimEnd(Path.DirectorySeparatorChar);
+
 		if (!Directory.Exists(args[0])) {
 			Console.WriteLine("Oops! The provided path is invalid or not a directory.");
 			Console.ReadKey(true);
@@ -52,6 +54,7 @@ class Program {
 
 		while (directories.Count > 0) {
 			string directoryPath = directories.Dequeue();
+			directoryPath = Path.GetFullPath(directoryPath);
 
 			if (Directory.Exists(directoryPath)) {
 				string[] files = Directory.GetFiles(directoryPath);
@@ -92,22 +95,22 @@ class Program {
 					}
 
 					// Check for favicon
-					if (!Directory.Exists(directoryPath + "\\images")) {
+					if (!Directory.Exists(Path.Combine(directoryPath, "images"))) {
 						Console.WriteLine("WARNING: You don't have an images folder containing a favicon; site will be built without one.");
 						hasFavicon = false;
 					}
-					else if (!File.Exists(directoryPath + "\\images\\favicon.ico") && !File.Exists(directoryPath + "\\images\\favicon.png")) {
+					else if (!File.Exists(Path.Combine(Path.Combine(directoryPath, "images"), "favicon.ico")) && !File.Exists(Path.Combine(Path.Combine(directoryPath, "images"), "favicon.png"))) {
 						Console.WriteLine("WARNING: There's no favicon in your images folder; site will be built without one.");
 						hasFavicon = false;
 					}
 
 					// Check if style folder exists with a style.css, it must
-					if (!Directory.Exists(directoryPath + "\\style")) {
+					if (!Directory.Exists(Path.Combine(directoryPath, "style"))) {
 						Console.WriteLine("Oops! You must have a style folder containing a style.css file.");
 						Console.ReadKey(true);
 						return;
 					}
-					if (!File.Exists(directoryPath + "\\style\\style.css")) {
+					if (!File.Exists(Path.Combine(Path.Combine(directoryPath, "style"), "style.css"))) {
 						Console.WriteLine("Oops! You need to have a style.css file in your style folder.");
 						Console.ReadKey(true);
 						return;
@@ -210,7 +213,11 @@ class Program {
 
 						// TODO: Change to a <zone> tag that wraps them, then just delete that tag's <div> if Markdown
 						if ((rss != string.Empty || disqus != string.Empty) && isMarkdown) { // With Markdown you have to wrap the RSS and Disqus top tags in a <div>
-							headerFooterDocument.DocumentNode.SelectSingleNode("//zone").Remove();
+							HtmlNode zoneNode = headerFooterDocument.DocumentNode.SelectSingleNode("//zone");
+							if (zoneNode != null) {
+								zoneNode.RemoveAll();
+								zoneNode.Remove();
+							}
 						}
 
 						// Build header and footer
@@ -246,8 +253,8 @@ class Program {
 					}
 
 					// Build post list if this site has posts
-					if (Directory.Exists(directoryPath + "\\posts")) {
-						string[] posts = Directory.GetFiles(directoryPath + "\\posts");
+					if (Directory.Exists(Path.Combine(directoryPath, "posts"))) {
+						string[] posts = Directory.GetFiles(Path.Combine(directoryPath, "posts"));
 
 						for (int i = posts.Length - 1; i >= 0; i--) {
 							if (Directory.Exists(posts[i])) {
@@ -299,7 +306,7 @@ class Program {
 				}
 
 				// Skip images and style folders
-				if (directoryPath == args[0] + "\\images" || directoryPath == args[0] + "\\style") {
+				if (directoryPath == Path.Combine(args[0], "images") || directoryPath == Path.Combine(args[0], "style")) {
 					continue;
 				}
 
@@ -475,7 +482,7 @@ class Program {
 						HtmlNode rssNode = finalDocument.DocumentNode.SelectSingleNode("//rss");
 						if (rssNode != null) {
 							rssArticleDescription = rssNode.InnerText;
-							rssNode.ParentNode.Remove();
+							rssNode.Remove();
 						}
 						else {
 							HtmlNode articleNode = finalDocument.DocumentNode.SelectSingleNode("//p");
@@ -563,28 +570,30 @@ class Program {
 		}
 
 		// Package zone, we can't fail now!
-		string buildDirectory = args[0].Substring(0, args[0].LastIndexOf('\\')) + args[0].Substring(args[0].LastIndexOf('\\'), args[0].Length - args[0].LastIndexOf('\\')) + "-built";
+		string zoneName = Path.GetFileName(args[0]);
+		string buildDirectory = Path.Combine(Directory.GetParent(Path.GetFullPath(args[0])).ToString(), zoneName + "-built");
+		Console.WriteLine(buildDirectory);
 
 		Directory.CreateDirectory(buildDirectory);
 
 		// Copy images
-		if (Directory.Exists((args[0] + "\\images"))) {
-			Directory.CreateDirectory(buildDirectory + "\\images");
-			FileInfo[] imageFiles = new DirectoryInfo(args[0] + "\\images").GetFiles();
+		if (Directory.Exists(Path.Combine(args[0], "images"))) {
+			Directory.CreateDirectory(Path.Combine(buildDirectory, "images"));
+			FileInfo[] imageFiles = new DirectoryInfo(Path.Combine(args[0], "images")).GetFiles();
 			foreach (FileInfo file in imageFiles) {
-				file.CopyTo(Path.Combine(buildDirectory + "\\images", file.Name), true);
+				file.CopyTo(Path.Combine(Path.Combine(buildDirectory, "images"), file.Name), true);
 			}
 		}
 
 		// Copy style
-		Directory.CreateDirectory(buildDirectory + "\\style");
-		FileInfo[] styleFile = new DirectoryInfo(args[0] + "\\style").GetFiles();
+		Directory.CreateDirectory(Path.Combine(buildDirectory, "style"));
+		FileInfo[] styleFile = new DirectoryInfo(Path.Combine(args[0], "style")).GetFiles();
 		foreach (FileInfo file in styleFile) {
-			file.CopyTo(Path.Combine(buildDirectory + "\\style", file.Name), true);
+			file.CopyTo(Path.Combine(Path.Combine(buildDirectory, "style"), file.Name), true);
 		}
 
 		// Build pages
-		Directory.CreateDirectory(buildDirectory + "\\posts");
+		Directory.CreateDirectory(Path.Combine(buildDirectory, "posts"));
 		for (int i = 0; i < pageData.Count; i++) {
 			File.WriteAllText(Path.Combine(buildDirectory, pageFilenames[i]), pageData[i]);
 		}
