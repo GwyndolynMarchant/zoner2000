@@ -35,15 +35,12 @@ class Program {
 <html>
 	<head>
 		<title>Title Text</title>
-		<link rel="icon" href="../images/favicon.png" type="image/x-icon"/>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<meta charset="UTF-8">
 		<link href="../style/style.css" rel="stylesheet" type="text/css" media="all">
 	</head>
 	<body>
 """;
-
-		bool hasFavicon = true;
 
 		Queue<string> directories = new Queue<string>();
 
@@ -107,18 +104,17 @@ class Program {
 					// Check for favicon
 					if (!Directory.Exists(Path.Combine(directoryPath, "images"))) {
 						Console.WriteLine("WARNING: You don't have an images folder containing a favicon; site will be built without one.");
-						hasFavicon = false;
-					}
-					else if (!File.Exists(Path.Combine(Path.Combine(directoryPath, "images"), "favicon.ico")) && !File.Exists(Path.Combine(Path.Combine(directoryPath, "images"), "favicon.png"))) {
+					} else if (!File.Exists(Path.Combine(directoryPath, "images", "favicon.ico")) && !File.Exists(Path.Combine(directoryPath, "images", "favicon.png"))) {
 						Console.WriteLine("WARNING: There's no favicon in your images folder; site will be built without one.");
-						hasFavicon = false;
+					} else {
+						universalHeadNodes.Add("<link rel=\"icon\" href=\"../images/favicon.png\" type=\"image/x-icon\"/>");
 					}
 
 					// Check if style folder exists with a style.css, it must
 					if (!Directory.Exists(Path.Combine(directoryPath, "style"))) {
 						throw new ApplicationException("Oops! You must have a style folder containing a style.css file.");
 					}
-					if (!File.Exists(Path.Combine(Path.Combine(directoryPath, "style"), "style.css"))) {
+					if (!File.Exists(Path.Combine(directoryPath, "style", "style.css"))) {
 						throw new ApplicationException("Oops! You need to have a style.css file in your style folder.");
 					}
 
@@ -142,8 +138,7 @@ class Program {
 
 							if (legacyZoneletNode != null) { // The regex is to remove all spaces and tabulation for a cleaner file
 								fileContent = Regex.Replace(legacyZoneletNode.InnerHtml, @"^([\ \x09]+)", string.Empty, RegexOptions.Multiline);
-							}
-							else {
+							} else {
 								fileContent = Regex.Replace(document.DocumentNode.InnerHtml, @"^([\ \x09]+)", string.Empty, RegexOptions.Multiline) + "\n";
 							}
 						}
@@ -419,8 +414,6 @@ class Program {
 						headDocument.DocumentNode.SelectSingleNode("//head").AppendChild(HtmlNode.CreateNode(nodeString));
 					}
 					articleHeadNodes.Clear();
-
-					if (!hasFavicon) { headDocument.DocumentNode.SelectSingleNode("//link").Remove(); }
 
 					// Build page TODO: Replace all the link replacements with a single string one at the end instead of individually
 					stringBuilder.Clear();
