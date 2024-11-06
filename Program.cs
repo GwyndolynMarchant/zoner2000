@@ -13,7 +13,6 @@ class Program {
 
 		if (args.Length < 1) {
 			Console.WriteLine("Oops! Please provide a path to your zone source, you can do this by dragging and dropping a zone source folder onto this executable.");
-			Console.ReadKey(true);
 			return;
 		}
 
@@ -21,7 +20,6 @@ class Program {
 
 		if (!Directory.Exists(args[0])) {
 			Console.WriteLine("Oops! The provided path is invalid or not a directory.");
-			Console.ReadKey(true);
 			return;
 		}
 
@@ -32,7 +30,18 @@ class Program {
 		string header = "";
 		string footer = "";
 
-		string head = "<!DOCTYPE html>\n<html>\n<head>\n<title>Title Text</title>\n<link rel=\"icon\" href=\"../images/favicon.png\" type=\"image/x-icon\"/>\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<meta charset=\"UTF-8\">\n<link href=\"../style/style.css\" rel=\"stylesheet\" type=\"text/css\" media=\"all\">\n</head>\n<body>\n";
+		string head = """
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Title Text</title>
+		<link rel="icon" href="../images/favicon.png" type="image/x-icon"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta charset="UTF-8">
+		<link href="../style/style.css" rel="stylesheet" type="text/css" media="all">
+	</head>
+	<body>
+""";
 
 		bool hasFavicon = true;
 
@@ -52,6 +61,19 @@ class Program {
 
 		string disqus = string.Empty;
 
+		List<string> universalHeadNodes = new List<string>();
+		List<string> articleHeadNodes = new List<string>();
+		void AppendHeadNodes(List<string> headNodes, HtmlNodeCollection nodes) {
+			if (nodes != null) {
+				foreach (HtmlNode node in nodes) {
+					Console.WriteLine("Found additional node: " + node.OuterHtml);
+					headNodes.Add(node.OuterHtml);
+				}
+			} else {
+				Console.WriteLine("No nodes found");
+			}
+		}
+
 		while (directories.Count > 0) {
 			string directoryPath = directories.Dequeue();
 			directoryPath = Path.GetFullPath(directoryPath);
@@ -61,9 +83,7 @@ class Program {
 
 				// Check for files
 				if (files.Length == 0 && directoryPath == args[0]) {
-					Console.WriteLine("Oops! There are no files in your source directory!");
-					Console.ReadKey(true);
-					return;
+					throw new ApplicationException("Oops! There are no files in your source directory!");
 				}
 
 				// Process site-wide files and data first
@@ -74,24 +94,14 @@ class Program {
 						string filePath = files[i];
 						string fileName = Path.GetFileNameWithoutExtension(filePath);
 
-						if (fileName.Contains('_')) {
-							if (fileName.Split('_')[0] == "index") {
-								indexExists = true;
-								break;
-							}
-						}
-						else {
-							if (fileName == "index") {
-								indexExists = true;
-								break;
-							}
+						if ((fileName.Contains('_') && fileName.Split('_')[0] == "index") || fileName == "index") {
+							indexExists = true;
+							break;
 						}
 					}
 
 					if (!indexExists) {
-						Console.WriteLine("Oops! You don't have an index file in your top directory, this is a required file!");
-						Console.ReadKey(true);
-						return;
+						throw new ApplicationException("Oops! You don't have an index file in your top directory, this is a required file!");
 					}
 
 					// Check for favicon
@@ -106,14 +116,10 @@ class Program {
 
 					// Check if style folder exists with a style.css, it must
 					if (!Directory.Exists(Path.Combine(directoryPath, "style"))) {
-						Console.WriteLine("Oops! You must have a style folder containing a style.css file.");
-						Console.ReadKey(true);
-						return;
+						throw new ApplicationException("Oops! You must have a style folder containing a style.css file.");
 					}
 					if (!File.Exists(Path.Combine(Path.Combine(directoryPath, "style"), "style.css"))) {
-						Console.WriteLine("Oops! You need to have a style.css file in your style folder.");
-						Console.ReadKey(true);
-						return;
+						throw new ApplicationException("Oops! You need to have a style.css file in your style folder.");
 					}
 
 					// Process header and footer
@@ -121,9 +127,7 @@ class Program {
 						string filePath = files[i];
 						string fileName = Path.GetFileNameWithoutExtension(filePath);
 
-						if (fileName.ToLowerInvariant() != "header" && fileName.ToLowerInvariant() != "footer") {
-							continue;
-						}
+						if (fileName.ToLowerInvariant() != "header" && fileName.ToLowerInvariant() != "footer") { continue; }
 
 						string fileContent = String.Empty;
 						string fileType = Path.GetExtension(files[i]);
@@ -155,14 +159,13 @@ class Program {
 							isMarkdown = true;
 						}
 
-						if (fileContent.Trim() == String.Empty) {
-							Console.WriteLine("Oops! '{0}' is empty, this is a required file.", filePath);
-							Console.ReadKey(true);
-							return;
-						}
+						if (fileContent.Trim() == String.Empty) { throw new ApplicationException("Oops! " + filePath + " is empty, this is a required file."); }
 
 						HtmlDocument headerFooterDocument = new HtmlDocument();
 						headerFooterDocument.LoadHtml(fileContent);
+
+						// Look for any meta tags and add them to the list of meta tags
+						AppendHeadNodes(universalHeadNodes, headerFooterDocument.DocumentNode.SelectNodes("//meta"));
 
 						// Grab data for RSS if it exists
 						HtmlNode rssTitle = headerFooterDocument.DocumentNode.SelectSingleNode("//rss-title");
@@ -192,10 +195,7 @@ class Program {
 							if (rssTtl != null) {
 								stringBuilder.Append("\t<ttl>" + rssTtl.InnerText + "</ttl>\n\n");
 								rssTtl.Remove();
-							}
-							else {
-								stringBuilder.Append("\t<ttl>1440</ttl>\n\n");
-							}
+							} else { stringBuilder.Append("\t<ttl>1440</ttl>\n\n"); }
 
 							rss = stringBuilder.ToString();
 						}
@@ -222,18 +222,9 @@ class Program {
 
 						// Build header and footer
 						if (fileName.ToLowerInvariant() == "header") {
-							stringBuilder.Clear();
-							stringBuilder.Append("<header id=\"header\">\n");
-							stringBuilder.Append(headerFooterDocument.DocumentNode.OuterHtml);
-							stringBuilder.Append("</header>\n");
-							header = stringBuilder.ToString();
-						}
-						else if (fileName.ToLowerInvariant() == "footer") {
-							stringBuilder.Clear();
-							stringBuilder.Append("<footer id=\"footer\">\n");
-							stringBuilder.Append(headerFooterDocument.DocumentNode.OuterHtml);
-							stringBuilder.Append("</footer>\n");
-							footer = stringBuilder.ToString();
+							header = "<header id=\"header\">\n" + headerFooterDocument.DocumentNode.OuterHtml + "</header>\n";
+						} else if (fileName.ToLowerInvariant() == "footer") {
+							footer = "<footer id=\"footer\">\n" + headerFooterDocument.DocumentNode.OuterHtml + "</footer>\n";
 						}
 
 						Console.WriteLine("Processed file: '{0}'.", filePath);
@@ -241,15 +232,11 @@ class Program {
 
 					// If a header or footer wasn't found
 					if (header.Trim() == String.Empty) {
-						Console.WriteLine("Oops! There's no header file in your top directory, this is a required file!");
-						Console.ReadKey(true);
-						return;
+						throw new ApplicationException("Oops! There's no header file in your top directory, this is a required file!");
 					}
 
 					if (footer.Trim() == String.Empty) {
-						Console.WriteLine("Oops! There's no footer file in your top directory, this is a required file!");
-						Console.ReadKey(true);
-						return;
+						throw new ApplicationException("Oops! There's no footer file in your top directory, this is a required file!");
 					}
 
 					// Build post list if this site has posts
@@ -294,8 +281,7 @@ class Program {
 									// Parse and add .html link name and date
 									if (postName.Contains('_')) {
 										postArchive.Add(postName.Split('_')[0] + ".html");
-									}
-									else {
+									} else {
 										postArchive.Add(postName + ".html");
 									}
 
@@ -392,7 +378,22 @@ class Program {
 							markdown = markdown.Replace("/" + match.Groups[2].Value + ")", "/" + match.Groups[2].Value + (match.Groups[2].Value.Contains(".html") ? string.Empty : ".html") + ")");
 						}
 
+						// Convert the markdown into an html document for further manipulation
 						fileContent = Markdown.ToHtml(markdown);
+						HtmlDocument document = new HtmlDocument();
+						document.LoadHtml("<html><body>" + fileContent + "</body></html>");
+						
+						// Move any further meta tags out
+						// TODO: Instead of embedding meta tags i would like to just use the tags that Deepdwn uses
+						try {
+							HtmlNodeCollection nodes = document.DocumentNode.SelectNodes("//meta");
+							AppendHeadNodes(articleHeadNodes, nodes);
+							foreach (HtmlNode node in nodes) { node.Remove(); }
+							fileContent = document.DocumentNode.InnerHtml;
+						} catch (System.NullReferenceException e) {
+							Console.WriteLine("Relocating meta tags failed!");
+							Console.WriteLine(e);
+						}
 					}
 					else {
 						Console.WriteLine("WARNING: '{0}' is either not a supported filetype or an image that should go in your images folder, will not be built.", filePath);
@@ -409,10 +410,17 @@ class Program {
 					headDocument.LoadHtml((directoryPath == args[0] ? head.Replace("\"../", "\"./") : head.Replace("\"./", "\"../"))); // Make links relative
 					HtmlNode titleNode = headDocument.DocumentNode.SelectSingleNode("//title");
 					titleNode.InnerHtml = titleNode.InnerHtml.Replace(titleNode.InnerHtml, title);
-
-					if (!hasFavicon) {
-						headDocument.DocumentNode.SelectSingleNode("//link").Remove();
+					
+					// Add head nodes back in
+					foreach (string nodeString in universalHeadNodes) {
+						headDocument.DocumentNode.SelectSingleNode("//head").AppendChild(HtmlNode.CreateNode(nodeString));	
 					}
+					foreach (string nodeString in articleHeadNodes) {
+						headDocument.DocumentNode.SelectSingleNode("//head").AppendChild(HtmlNode.CreateNode(nodeString));
+					}
+					articleHeadNodes.Clear();
+
+					if (!hasFavicon) { headDocument.DocumentNode.SelectSingleNode("//link").Remove(); }
 
 					// Build page TODO: Replace all the link replacements with a single string one at the end instead of individually
 					stringBuilder.Clear();
@@ -422,13 +430,9 @@ class Program {
 					stringBuilder.Append((directoryPath == args[0] ? header.Replace("\"../", "\"./") : header.Replace("\"./", "\"../")));
 					stringBuilder.Append("<article id=\"content\">\n");
 					if (directoryPath != args[0]) { // Header for posts if not None
-						if (fileName.Contains('_')) {
-							if (fileName.Split('_')[1] != "None") {
-								stringBuilder.Append("<h1>" + title + "</h1>\n");
-								stringBuilder.Append("<h4>" + postDate + "</h4>\n");
-							}
-						}
-						else {
+						if (fileName.Contains('_') && fileName.Split('_')[1] == "None") {
+							Console.WriteLine("This post has no title.");
+						} else {
 							stringBuilder.Append("<h1>" + title + "</h1>\n");
 							stringBuilder.Append("<h4>" + postDate + "</h4>\n");
 						}
@@ -582,7 +586,7 @@ class Program {
 			Directory.CreateDirectory(Path.Combine(buildDirectory, "images"));
 			FileInfo[] imageFiles = new DirectoryInfo(Path.Combine(args[0], "images")).GetFiles();
 			foreach (FileInfo file in imageFiles) {
-				file.CopyTo(Path.Combine(Path.Combine(buildDirectory, "images"), file.Name), true);
+				file.CopyTo(Path.Combine(buildDirectory, "images", file.Name), true);
 			}
 		}
 
@@ -590,7 +594,7 @@ class Program {
 		Directory.CreateDirectory(Path.Combine(buildDirectory, "style"));
 		FileInfo[] styleFile = new DirectoryInfo(Path.Combine(args[0], "style")).GetFiles();
 		foreach (FileInfo file in styleFile) {
-			file.CopyTo(Path.Combine(Path.Combine(buildDirectory, "style"), file.Name), true);
+			file.CopyTo(Path.Combine(buildDirectory, "style", file.Name), true);
 		}
 
 		// Build pages
@@ -603,6 +607,5 @@ class Program {
 		File.WriteAllText(Path.Combine(buildDirectory, "feed.xml"), rss);
 
 		Console.WriteLine("SUCCESS: Your zone has been built to: '{0}'.", buildDirectory);
-		Console.ReadKey(true);
 	}
 }
