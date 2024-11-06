@@ -31,16 +31,16 @@ class Program {
 		string footer = "";
 
 		string head = """
-<!DOCTYPE html>
-<html>
-	<head>
-		<title>Title Text</title>
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<meta charset="UTF-8">
-		<link href="../style/style.css" rel="stylesheet" type="text/css" media="all">
-	</head>
-	<body>
-""";
+			<!DOCTYPE html>
+			<html>
+				<head>
+					<title>Title Text</title>
+					<meta name="viewport" content="width=device-width, initial-scale=1.0">
+					<meta charset="UTF-8">
+					<link href="../style/style.css" rel="stylesheet" type="text/css" media="all">
+				</head>
+				<body>
+		""";
 
 		Queue<string> directories = new Queue<string>();
 
@@ -71,6 +71,9 @@ class Program {
 			}
 		}
 
+		// Configure the pipeline with all advanced extensions active
+		var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+
 		while (directories.Count > 0) {
 			string directoryPath = directories.Dequeue();
 			directoryPath = Path.GetFullPath(directoryPath);
@@ -86,28 +89,20 @@ class Program {
 				// Process site-wide files and data first
 				if (directoryPath == args[0]) {
 					// Check for index page
-					bool indexExists = false;
-					for (int i = 0; i < files.Length; i++) {
-						string filePath = files[i];
-						string fileName = Path.GetFileNameWithoutExtension(filePath);
+					bool indexExists = Array.Exists(Directory.GetFiles(directoryPath),
+						filePath => (new Regex("^index")).Match(Path.GetFileNameWithoutExtension(filePath)).Success);
 
-						if ((fileName.Contains('_') && fileName.Split('_')[0] == "index") || fileName == "index") {
-							indexExists = true;
-							break;
-						}
-					}
-
-					if (!indexExists) {
-						throw new ApplicationException("Oops! You don't have an index file in your top directory, this is a required file!");
-					}
+					if (!indexExists) { throw new ApplicationException("Oops! You don't have an index file in your top directory, this is a required file!"); }
 
 					// Check for favicon
 					if (!Directory.Exists(Path.Combine(directoryPath, "images"))) {
 						Console.WriteLine("WARNING: You don't have an images folder containing a favicon; site will be built without one.");
-					} else if (!File.Exists(Path.Combine(directoryPath, "images", "favicon.ico")) && !File.Exists(Path.Combine(directoryPath, "images", "favicon.png"))) {
-						Console.WriteLine("WARNING: There's no favicon in your images folder; site will be built without one.");
-					} else {
+					} else if (File.Exists(Path.Combine(directoryPath, "images", "favicon.ico"))) {
+						universalHeadNodes.Add("<link rel=\"icon\" href=\"../images/favicon.ico\" type=\"image/x-icon\"/>");
+					} else if (File.Exists(Path.Combine(directoryPath, "images", "favicon.png"))) {
 						universalHeadNodes.Add("<link rel=\"icon\" href=\"../images/favicon.png\" type=\"image/x-icon\"/>");
+					} else {
+						Console.WriteLine("WARNING: There's no favicon in your images folder; site will be built without one.");
 					}
 
 					// Check if style folder exists with a style.css, it must
@@ -150,7 +145,7 @@ class Program {
 								markdown = markdown.Replace("/" + match.Groups[2].Value + ")", "/" + match.Groups[2].Value + (match.Groups[2].Value.Contains(".html") ? string.Empty : ".html") + ")");
 							}
 
-							fileContent = Markdown.ToHtml(markdown);
+							fileContent = Markdown.ToHtml(markdown, pipeline);
 							isMarkdown = true;
 						}
 
@@ -257,9 +252,7 @@ class Program {
 									string postTitle = string.Empty;
 									string postNameNoDate = postName.Substring(11, postName.Length - 11);
 
-									if (postNameNoDate.Trim() == string.Empty) { // Check if empty first
-										continue;
-									}
+									if (postNameNoDate.Trim() == string.Empty) { continue; } // Check if empty first
 
 									if (postNameNoDate.Contains('_')) {
 										if (postNameNoDate.Split('_')[1] == "None") {
@@ -288,9 +281,7 @@ class Program {
 				}
 
 				// Skip images and style folders
-				if (directoryPath == Path.Combine(args[0], "images") || directoryPath == Path.Combine(args[0], "style")) {
-					continue;
-				}
+				if (directoryPath == Path.Combine(args[0], "images") || directoryPath == Path.Combine(args[0], "style")) { continue; }
 
 				// Final process of all the pages and posts
 				for (int i = 0; i < files.Length; i++) {
@@ -298,9 +289,7 @@ class Program {
 					string fileName = Path.GetFileNameWithoutExtension(filePath);
 
 					// Ignore header and footer
-					if (fileName.ToLowerInvariant() == "header" || fileName.ToLowerInvariant() == "footer") {
-						continue;
-					}
+					if (fileName.ToLowerInvariant() == "header" || fileName.ToLowerInvariant() == "footer") { continue; }
 
 					// Generate title
 					string title = string.Empty;
@@ -374,7 +363,7 @@ class Program {
 						}
 
 						// Convert the markdown into an html document for further manipulation
-						fileContent = Markdown.ToHtml(markdown);
+						fileContent = Markdown.ToHtml(markdown, pipeline);
 						HtmlDocument document = new HtmlDocument();
 						document.LoadHtml("<html><body>" + fileContent + "</body></html>");
 						
@@ -538,7 +527,7 @@ class Program {
 							string builtArchive = stringBuilder.ToString();
 							builtArchive = (directoryPath == args[0] ? builtArchive.Replace("\"../", "\"./") : builtArchive.Replace("\"./", "\"../"));
 
-							HtmlNode builtArchiveNode = HtmlNode.CreateNode(Markdown.ToHtml(builtArchive));
+							HtmlNode builtArchiveNode = HtmlNode.CreateNode(Markdown.ToHtml(builtArchive, pipeline));
 
 							archiveNode.ParentNode.ReplaceChild(builtArchiveNode, archiveNode);
 						}
@@ -563,9 +552,7 @@ class Program {
 		}
 
 		// Close RSS
-		if (rss != string.Empty) {
-			rss += "</channel>\n</rss>";
-		}
+		if (rss != string.Empty) { rss += "</channel>\n</rss>"; }
 
 		// Package zone, we can't fail now!
 		string zoneName = Path.GetFileName(args[0]);
