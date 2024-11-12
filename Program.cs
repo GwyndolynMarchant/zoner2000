@@ -7,9 +7,23 @@ using System.Text.RegularExpressions;
 using HtmlAgilityPack;
 using Markdig;
 
-class Program {
+using Zoner;
+using Deepdwn;
 
+class Program {
 	static string RawName(string fileName) { return fileName.Contains('_') ? fileName.Split('_')[0] : fileName; }
+
+	static HtmlDocument LoadHtmlFromPath(string path) {
+		var doc = new HtmlDocument();
+		doc.Load(path);
+		return doc;
+	}
+
+	static HtmlDocument LoadHtmlFromContent(string content) {
+		var doc = new HtmlDocument();
+		doc.LoadHtml(content);
+		return doc;
+	}
 
 	static void Main(string[] args) {
 
@@ -44,7 +58,6 @@ class Program {
 		""";
 
 		Queue<string> directories = new Queue<string>();
-
 		directories.Enqueue(args[0]);
 
 		List<string> postArchive = new List<string>();
@@ -64,11 +77,8 @@ class Program {
 		void AppendHeadNodes(List<string> headNodes, HtmlNodeCollection nodes) {
 			if (nodes != null) {
 				foreach (HtmlNode node in nodes) {
-					Console.WriteLine("Found additional node: " + node.OuterHtml);
 					headNodes.Add(node.OuterHtml);
 				}
-			} else {
-				Console.WriteLine("No nodes found");
 			}
 		}
 
@@ -129,8 +139,7 @@ class Program {
 					string fileContent = String.Empty;
 
 					void processHTML() {
-						HtmlDocument document = new HtmlDocument();
-						document.Load(filePath);
+						HtmlDocument document = LoadHtmlFromPath(filePath);
 
 						HtmlNode legacyZoneletNode = document.DocumentNode.SelectSingleNode("//*[@id='content']");
 
@@ -162,6 +171,7 @@ class Program {
 							case ".html":
 							case ".htmls":
 								processHTML();
+								return false;
 							default:
 								return false; // IDK
 						}
@@ -171,8 +181,7 @@ class Program {
 
 					if (fileContent.Trim() == String.Empty) { throw new ApplicationException($"Oops! {filePath} is empty, this is a required file."); }
 
-					HtmlDocument headerFooterDocument = new HtmlDocument();
-					headerFooterDocument.LoadHtml(fileContent);
+					HtmlDocument headerFooterDocument = LoadHtmlFromContent(fileContent);
 
 					// Look for any meta tags and add them to the list of meta tags
 					AppendHeadNodes(universalHeadNodes, headerFooterDocument.DocumentNode.SelectNodes("//meta"));
@@ -233,11 +242,11 @@ class Program {
 					// Build header and footer
 					if (fileName.ToLowerInvariant() == "header") {
 						header = $"<header id=\"header\">\n{headerFooterDocument.DocumentNode.OuterHtml}</header>\n";
+						Console.WriteLine("Processed header.");
 					} else if (fileName.ToLowerInvariant() == "footer") {
 						footer = $"<footer id=\"footer\">\n{headerFooterDocument.DocumentNode.OuterHtml}</footer>\n";
+						Console.WriteLine("Processed footer.");
 					}
-
-					Console.WriteLine("Processed file: '{0}'.", filePath);
 				}
 
 				// If a header or footer wasn't found
@@ -343,8 +352,7 @@ class Program {
 				string fileContent = String.Empty;
 
 				void processHTML() {
-					HtmlDocument document = new HtmlDocument();
-					document.Load(filePath);
+					HtmlDocument document = LoadHtmlFromPath(filePath);
 
 					HtmlNode legacyZoneletNode = document.DocumentNode.SelectSingleNode("//*[@id='content']");
 
@@ -371,6 +379,17 @@ class Program {
 				void processMarkdown() {
 					string markdown = File.ReadAllText(filePath);
 
+					// Parse yaml frontmatter
+					FrontMatter fm = YamlReader.ReadYamlFrontmatter(filePath);
+					if (fm == null) { Console.WriteLine("[Zoner] No frontmatter found."); }
+					else {
+						title = fm.Title;
+						Console.WriteLine($"[Zoner] Title found in frontmatter: {fm.Title}");
+						foreach (string tag in fm.Tags) {
+							articleHeadNodes.Add($"<meta property=\"article:tag\" content=\"{tag}\"/>");
+						}
+					}
+
 					// Generate links
 					foreach (Match match in Regex.Matches(markdown, @"(\(\.\/|\(\.\.\/)([^(.)]*)\)", RegexOptions.Multiline)) {
 						markdown = markdown.Replace("/" + match.Groups[2].Value + ")", "/" + match.Groups[2].Value + (match.Groups[2].Value.Contains(".html") ? string.Empty : ".html") + ")");
@@ -378,8 +397,7 @@ class Program {
 
 					// Convert the markdown into an html document for further manipulation
 					fileContent = Markdown.ToHtml(markdown, pipeline);
-					HtmlDocument document = new HtmlDocument();
-					document.LoadHtml($"<html><body>{fileContent}</body></html>");
+					HtmlDocument document = LoadHtmlFromContent($"<html><body>{fileContent}</body></html>");
 					
 					// Move any further meta tags out
 					// TODO: Instead of embedding meta tags i would like to just use the tags that Deepdwn uses
@@ -388,9 +406,8 @@ class Program {
 						AppendHeadNodes(articleHeadNodes, nodes);
 						foreach (HtmlNode node in nodes) { node.Remove(); }
 						fileContent = document.DocumentNode.InnerHtml;
-					} catch (System.NullReferenceException e) {
-						Console.WriteLine("Relocating meta tags failed!");
-						Console.WriteLine(e);
+					} catch {
+						Console.WriteLine("No meta tags found");
 					}
 				}
 
@@ -413,8 +430,9 @@ class Program {
 				}
 
 				// Generate head
-				HtmlDocument headDocument = new HtmlDocument();
-				headDocument.LoadHtml((directoryPath == args[0] ? head.Replace("\"../", "\"./") : head.Replace("\"./", "\"../"))); // Make links relative
+				HtmlDocument headDocument = LoadHtmlFromContent(
+					directoryPath == args[0] ? head.Replace("\"../", "\"./") : head.Replace("\"./", "\"../") // Make links relative
+				); 
 				HtmlNode titleNode = headDocument.DocumentNode.SelectSingleNode("//title");
 				titleNode.InnerHtml = titleNode.InnerHtml.Replace(titleNode.InnerHtml, title);
 				
@@ -468,8 +486,7 @@ class Program {
 				stringBuilder.Append((directoryPath == args[0] ? footer.Replace("\"../", "\"./") : footer.Replace("\"./", "\"../")));
 				stringBuilder.Append("</div>\n</body>\n</html>");
 
-				HtmlDocument finalDocument = new HtmlDocument();
-				finalDocument.LoadHtml(stringBuilder.ToString());
+				HtmlDocument finalDocument = LoadHtmlFromContent(stringBuilder.ToString());
 
 				// Custom style sheet reference TODO: Make a checker here that the style exists, warn user if it doesn't
 				HtmlNode styleNode = finalDocument.DocumentNode.SelectSingleNode("//style");
@@ -547,7 +564,7 @@ class Program {
 				pageFilenames.Add((directoryPath != args[0] ? "posts/" : string.Empty) + RawName(fileName) + ".html");
 				pageData.Add(finalDocument.DocumentNode.OuterHtml);
 
-				Console.WriteLine($"Processed file: '{filePath}'.");
+				Console.WriteLine($"Processed file: '{filePath}'.\n");
 			}
 
 			Array.ForEach(Directory.GetDirectories(directoryPath), sub => directories.Enqueue(sub));
