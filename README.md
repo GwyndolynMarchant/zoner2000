@@ -4,8 +4,6 @@ Zoner2000 is a small command line tool for easing the construction of [Zonelets]
 
 Check out the original Zoner example site: <https://zone-builder.neocities.org/>
 
-Download the original Zoner binaries on itch: <https://ryantrawick.itch.io/zoner>
-
 ## Features
 
 - Simple drag and drop or command line build interface.
@@ -29,4 +27,4 @@ Requires .NET 7.0 to build, does not require .NET libraries to run.
 
 ## Dependencies
 
-Zoner makes use of [Markdig](https://github.com/xoofx/markdig) for Markdown processing and [HtmlAgilityPack](https://www.nuget.org/packages/HtmlAgilityPack/) for document manipulation.
+Zoner2000 makes use of [Markdig](https://github.com/xoofx/markdig) for Markdown processing and [HtmlAgilityPack](https://www.nuget.org/packages/HtmlAgilityPack/) for document manipulation.
