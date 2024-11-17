@@ -25,6 +25,8 @@ class Program {
 		return doc;
 	}
 
+	private static StringBuilder stringBuilder = new StringBuilder();
+
 	static void Main(string[] args) {
 
 		if (args.Length < 1) {
@@ -39,8 +41,6 @@ class Program {
 		}
 
 		Console.WriteLine($"Going to work on: '{args[0]}'!");
-
-		StringBuilder stringBuilder = new StringBuilder();
 
 		string header = "";
 		string footer = "";
@@ -82,8 +82,8 @@ class Program {
 			}
 		}
 
-		// Configure the pipeline with all advanced extensions active
-		var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+		// Configure the pipeline, adding Yaml Frontmatter support
+		var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().UseYamlFrontMatter().Build();
 
 		while (directories.Count > 0) {
 			string directoryPath = directories.Dequeue();
@@ -383,7 +383,7 @@ class Program {
 					FrontMatter fm = YamlReader.ReadYamlFrontmatter(filePath);
 					if (fm == null) { Console.WriteLine("[Zoner] No frontmatter found."); }
 					else {
-						title = fm.Title;
+						//title = fm.Title; -- TODO: This currently breaks everything???
 						Console.WriteLine($"[Zoner] Title found in frontmatter: {fm.Title}");
 						foreach (string tag in fm.Tags) {
 							articleHeadNodes.Add($"<meta property=\"article:tag\" content=\"{tag}\"/>");
@@ -400,7 +400,6 @@ class Program {
 					HtmlDocument document = LoadHtmlFromContent($"<html><body>{fileContent}</body></html>");
 					
 					// Move any further meta tags out
-					// TODO: Instead of embedding meta tags i would like to just use the tags that Deepdwn uses
 					try {
 						HtmlNodeCollection nodes = document.DocumentNode.SelectNodes("//meta");
 						AppendHeadNodes(articleHeadNodes, nodes);
