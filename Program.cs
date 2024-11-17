@@ -63,6 +63,7 @@ class Program {
 		List<string> postArchive = new List<string>();
 		List<string> postTitles = new List<string>();
 		List<string> postDates = new List<string>();
+		Dictionary<string, FrontMatter> postFrontMatter = new Dictionary<string, FrontMatter>();
 
 		List<string> pageFilenames = new List<string>();
 		List<string> pageData = new List<string>();
@@ -270,6 +271,15 @@ class Program {
 						if (postType == ".md" || postType == ".txt" || postType == ".html" || postType == ".htm" || postType == ".htmls") {
 							string postName = Path.GetFileNameWithoutExtension(posts[i]);
 
+							// Parse frontmatter
+							if (postType == ".md" || postType == ".txt") {
+								FrontMatter fm = YamlReader.ReadYamlFrontmatter(posts[i]);
+								if (fm != null) {
+									postFrontMatter.Add(RawName(postName), fm);
+									postTitles.Add(fm.Title);
+								}
+							}
+
 							// Generate date and .html link name
 							DateTime dateTime;
 							string postDate = string.Empty;
@@ -281,21 +291,22 @@ class Program {
 
 								if (postNameNoDate.Trim() == string.Empty) { continue; } // Check if empty first
 
-								if (postNameNoDate.Contains('_')) {
-									if (postNameNoDate.Split('_')[1] == "None") {
-										postTitles.Add(CultureInfo.CurrentCulture.TextInfo.ToTitleCase(postNameNoDate.Split('_')[0].Replace('-', ' ')));
+								if (!postFrontMatter.ContainsKey(RawName(postName))) {
+									if (postNameNoDate.Contains('_')) {
+										if (postNameNoDate.Split('_')[1] == "None") {
+											postTitles.Add(CultureInfo.CurrentCulture.TextInfo.ToTitleCase(postNameNoDate.Split('_')[0].Replace('-', ' ')));
+										}
+										else {
+											postTitles.Add(postNameNoDate.Split('_')[1]);
+										}
 									}
 									else {
-										postTitles.Add(postNameNoDate.Split('_')[1]);
+										postTitles.Add(CultureInfo.CurrentCulture.TextInfo.ToTitleCase(postNameNoDate.Replace('-', ' ')));
 									}
-								}
-								else {
-									postTitles.Add(CultureInfo.CurrentCulture.TextInfo.ToTitleCase(postNameNoDate.Replace('-', ' ')));
 								}
 
 								// Parse and add .html link name and date
 								postArchive.Add(RawName(postName) + ".html");
-
 								postDates.Add(dateTime.ToString("yyyy-MM-dd"));
 							}
 						}
@@ -380,14 +391,14 @@ class Program {
 					string markdown = File.ReadAllText(filePath);
 
 					// Parse yaml frontmatter
-					FrontMatter fm = YamlReader.ReadYamlFrontmatter(filePath);
-					if (fm == null) { Console.WriteLine("[Zoner] No frontmatter found."); }
-					else {
-						//title = fm.Title; -- TODO: This currently breaks everything???
-						Console.WriteLine($"[Zoner] Title found in frontmatter: {fm.Title}");
+					try {
+						FrontMatter fm = postFrontMatter[RawName(fileName)];
+						title = fm.Title;
 						foreach (string tag in fm.Tags) {
 							articleHeadNodes.Add($"<meta property=\"article:tag\" content=\"{tag}\"/>");
 						}
+					} catch (KeyNotFoundException e) {
+						Console.WriteLine("[Zoner] No frontmatter for page."); 
 					}
 
 					// Generate links
@@ -406,7 +417,7 @@ class Program {
 						foreach (HtmlNode node in nodes) { node.Remove(); }
 						fileContent = document.DocumentNode.InnerHtml;
 					} catch {
-						Console.WriteLine("No meta tags found");
+						Console.WriteLine("[Zoner] No meta tags found");
 					}
 				}
 
@@ -465,7 +476,7 @@ class Program {
 					// "Next Post" and "Previous Post" buttons for posts
 					stringBuilder.Append("<nav id=\"nextprev\">");
 					int postIndex = postTitles.IndexOf(title);
-					if (postIndex != 0) {
+					if (postIndex > 0) {
 						string nextFileName = postArchive[postIndex - 1];
 						stringBuilder.Append("<a href=\"./" + RawName(nextFileName) + "\">« Next Post</a> | ");
 					}
@@ -563,7 +574,7 @@ class Program {
 				pageFilenames.Add((directoryPath != args[0] ? "posts/" : string.Empty) + RawName(fileName) + ".html");
 				pageData.Add(finalDocument.DocumentNode.OuterHtml);
 
-				Console.WriteLine($"Processed file: '{filePath}'.\n");
+				Console.WriteLine($"[Zoner] Processed file: '{filePath}'.\n");
 			}
 
 			Array.ForEach(Directory.GetDirectories(directoryPath), sub => directories.Enqueue(sub));
@@ -604,6 +615,6 @@ class Program {
 		// RSS
 		File.WriteAllText(BuildPath("feed.xml"), rss);
 
-		Console.WriteLine($"SUCCESS: Your zone has been built to: '{buildDirectory}'.");
+		Console.WriteLine($"[Zoner] SUCCESS: Your zone has been built to: '{buildDirectory}'.");
 	}
 }
