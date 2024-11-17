@@ -25,7 +25,7 @@ dotnet restore
 dotnet publish -c release -r <RUNTIME>
 ```
 
-Requires .NET 5.0 to build, does not require .NET libraries to run.
+Requires .NET 7.0 to build, does not require .NET libraries to run.
 
 ## Dependencies
 
