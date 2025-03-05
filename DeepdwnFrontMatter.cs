@@ -23,7 +23,7 @@ namespace Deepdwn {
 		}
 
 		private static string[] DeserializeTags(string yaml) {
-			var matches = Regex.Matches(yaml, @"-\s?(.+)$", RegexOptions.Multiline);
+			var matches = Regex.Matches(yaml, @"^\s*-\s?(.+)$", RegexOptions.Multiline);
 			var tags = new string[matches.Count];
 			for (var i = 0; i < matches.Count; i++) {
 				tags[i] = matches[i].Groups[1].Value;
@@ -33,7 +33,7 @@ namespace Deepdwn {
 		}
 
 		public static FrontMatter Deserialize(string yaml) {
-			var matches = Regex.Matches(yaml, @"^(\w+):(.+)(\r?\n(?:\s+-.+)+)?", RegexOptions.Multiline);
+			var matches = Regex.Matches(yaml, @"^(\w+):(.*)(\r?\n(?:\s*-.+)+)?", RegexOptions.Multiline);
 			var fm = new FrontMatter();
 			foreach (Match match in matches) {
 				string key = match.Groups[1].Value;

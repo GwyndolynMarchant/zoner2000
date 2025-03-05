@@ -273,11 +273,13 @@ class Program {
 
 							// Parse frontmatter
 							if (postType == ".md" || postType == ".txt") {
+								Console.WriteLine($"[Zoner] Preprocessing {RawName(postName)}...");
 								FrontMatter fm = YamlReader.ReadYamlFrontmatter(posts[i]);
 								if (fm != null) {
 									postFrontMatter.Add(RawName(postName), fm);
 									postTitles.Add(fm.Title);
 								}
+								Console.WriteLine();
 							}
 
 							// Generate date and .html link name
@@ -394,8 +396,12 @@ class Program {
 					try {
 						FrontMatter fm = postFrontMatter[RawName(fileName)];
 						title = fm.Title;
-						foreach (string tag in fm.Tags) {
-							articleHeadNodes.Add($"<meta property=\"article:tag\" content=\"{tag}\"/>");
+						try {
+							foreach (string tag in fm.Tags) {
+								articleHeadNodes.Add($"<meta property=\"article:tag\" content=\"{tag}\"/>");
+							}
+						} catch (NullReferenceException e) {
+							Console.WriteLine("[Zoner] No tags found for page.");
 						}
 					} catch (KeyNotFoundException e) {
 						Console.WriteLine("[Zoner] No frontmatter for page."); 
