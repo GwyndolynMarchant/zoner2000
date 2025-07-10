@@ -25,6 +25,10 @@ class Program {
 		return doc;
 	}
 
+	static string OpengraphProperty(string property, string content) {
+		return $"<meta property='og:{property}' content='{content}'/>";
+	}
+
 	private static StringBuilder stringBuilder = new StringBuilder();
 
 	static void Main(string[] args) {
@@ -47,8 +51,8 @@ class Program {
 
 		string head = """
 			<!DOCTYPE html>
-			<html>
-				<head>
+			<html prefix="og: https://ogp.me/ns#">
+				<head profile="http://gmpg.org/xfn/11">
 					<title>Title Text</title>
 					<meta name="viewport" content="width=device-width, initial-scale=1.0">
 					<meta charset="UTF-8">
@@ -113,13 +117,13 @@ class Program {
 
 				// Check for favicon
 				if (!Directory.Exists(DirPath("images"))) {
-					Console.WriteLine("WARNING: You don't have an images folder containing a favicon; site will be built without one.");
+					Console.WriteLine("[Zoner] WARNING: You don't have an images folder containing a favicon; site will be built without one.");
 				} else if (File.Exists(DirPath("images\\favicon.ico"))) {
 					universalHeadNodes.Add("<link rel=\"icon\" href=\"../images/favicon.ico\" type=\"image/x-icon\"/>");
 				} else if (File.Exists(DirPath("images\\favicon.png"))) {
 					universalHeadNodes.Add("<link rel=\"icon\" href=\"../images/favicon.png\" type=\"image/x-icon\"/>");
 				} else {
-					Console.WriteLine("WARNING: There's no favicon in your images folder; site will be built without one.");
+					Console.WriteLine("[Zoner] WARNING: There's no favicon in your images folder; site will be built without one.");
 				}
 
 				// Check if style folder exists with a style.css, it must
@@ -220,7 +224,7 @@ class Program {
 						rss = stringBuilder.ToString();
 					}
 					else if (fileName.ToLowerInvariant() == "header") {
-						Console.WriteLine("WARNING: RSS will not be built for your site, refer to the example site's header for how to implement RSS.");
+						Console.WriteLine("[Zoner] WARNING: RSS will not be built for your site, refer to the example site's header for how to implement RSS.");
 					}
 
 					// Disqus
@@ -345,7 +349,7 @@ class Program {
 				}
 
 				if (directoryPath != args[0] && title.Trim() == string.Empty) {
-					Console.WriteLine("WARNING: '{0}' filename has no title, post will not be built!", filePath);
+					Console.WriteLine("[Zoner] WARNING: '{0}' filename has no title, post will not be built!", filePath);
 					continue;
 				}
 
@@ -357,7 +361,7 @@ class Program {
 					postDate = dateTime.ToString("d MMMM yyyy");
 				}
 				else if (directoryPath != args[0]) {
-					Console.WriteLine("WARNING: '{0}' has no date or an invalid date prepending the filename, post will not be built! Make sure you have leading zeros in the day and month spots if they're single digit. Also make sure your date is formatted year-month-day-, tailing with a dash!", filePath);
+					Console.WriteLine("[Zoner] WARNING: '{0}' has no date or an invalid date prepending the filename, post will not be built! Make sure you have leading zeros in the day and month spots if they're single digit. Also make sure your date is formatted year-month-day-, tailing with a dash!", filePath);
 					continue;
 				}
 
@@ -398,7 +402,7 @@ class Program {
 						title = fm.Title;
 						try {
 							foreach (string tag in fm.Tags) {
-								articleHeadNodes.Add($"<meta property=\"article:tag\" content=\"{tag}\"/>");
+								articleHeadNodes.Add(OpengraphProperty("tag", tag));
 							}
 						} catch (NullReferenceException e) {
 							Console.WriteLine("[Zoner] No tags found for page.");
@@ -436,12 +440,12 @@ class Program {
 					case ".txt":
 						processMarkdown(); break;
 					default:
-						Console.WriteLine("WARNING: '{0}' is either not a supported filetype or an image that should go in your images folder, will not be built.", filePath);
+						Console.WriteLine("[Zoner] WARNING: '{0}' is either not a supported filetype or an image that should go in your images folder, will not be built.", filePath);
 						continue;
 				}
 
 				if (fileContent.Trim() == String.Empty) {
-					Console.WriteLine($"WARNING: '{filePath}' is empty, will not be built.");
+					Console.WriteLine($"[Zoner] WARNING: '{filePath}' is empty, will not be built.");
 					continue;
 				}
 
@@ -451,6 +455,8 @@ class Program {
 				); 
 				HtmlNode titleNode = headDocument.DocumentNode.SelectSingleNode("//title");
 				titleNode.InnerHtml = titleNode.InnerHtml.Replace(titleNode.InnerHtml, title);
+				articleHeadNodes.Add(OpengraphProperty("title", title)); 	// Add opengraph title
+				articleHeadNodes.Add(OpengraphProperty("type", "article"));	// Add opengraph type
 				
 				// Add head nodes back in
 				foreach (string nodeString in universalHeadNodes) {
@@ -545,7 +551,7 @@ class Program {
 					HtmlNode rssNode = finalDocument.DocumentNode.SelectSingleNode("//rss");
 					if (rssNode != null) {
 						rssNode.ParentNode.Remove();
-						Console.WriteLine($"WARNING: RSS is not setup in your header, but '{filePath}' has an <rss> tag!");
+						Console.WriteLine($"[Zoner] WARNING: RSS is not setup in your header, but '{filePath}' has an <rss> tag!");
 					}
 				}
 
