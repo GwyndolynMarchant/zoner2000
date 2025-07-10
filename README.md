@@ -15,6 +15,10 @@ Check out the original Zoner example site: <https://zone-builder.neocities.org/>
 - Support for YAML Frontmatter as used in [Deepdwn](https://support.deepdwn.com/docs/guide/getting-started/#organizing-your-files)
 	- Title
 	- Tags
+- [Open Graph Protocol](https://ogp.me/) support with automatic generation of:
+	- Title
+	- Tags
+- Basic [XFN](https://gmpg.org/xfn/) support
 
 ## Build
 
