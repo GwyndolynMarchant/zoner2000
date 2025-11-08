@@ -1,1 +1,1 @@
-build: dotnet publish -c release; New-BurntToastNotification -Text "Build finished.", "Check terminal for success or failure." -AppLogo "./Icon.ico"; # Build
+build: dotnet publish -c release --self-contained true; New-BurntToastNotification -Text "Build finished.", "Check terminal for success or failure." -AppLogo "./Icon.ico"; # Build

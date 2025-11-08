@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using HtmlAgilityPack;
 using Markdig;
+using SharpScss;
 
 using Zoner;
 using Deepdwn;
@@ -38,6 +39,8 @@ class Program {
 		}
 
 		args[0] = Path.GetFullPath(args[0]).TrimEnd(Path.DirectorySeparatorChar);
+
+		// Path which is a subdirectory from the provided project root
 		string SubPath(string sub) { return Path.Combine(args[0], sub); }
 
 		if (!Directory.Exists(args[0])) {
@@ -130,8 +133,8 @@ class Program {
 				if (!Directory.Exists(DirPath("style"))) {
 					throw new ApplicationException("Oops! You must have a style folder containing a style.css file.");
 				}
-				if (!File.Exists(DirPath("style\\style.css"))) {
-					throw new ApplicationException("Oops! You need to have a style.css file in your style folder.");
+				if (!File.Exists(DirPath("style\\style.css")) && !File.Exists(DirPath("style\\style.scss"))) {
+					throw new ApplicationException("Oops! You need to have a style.css or style.scss file in your style folder.");
 				}
 
 				// Process header and footer
@@ -616,7 +619,13 @@ class Program {
 
 		// Copy style
 		CreateBuildDirectory("style");
-		Array.ForEach(GetFiles("style"), file => file.CopyTo(BuildPath($"style\\{file.Name}"), true));
+		Array.ForEach(GetFiles("style"), file => {
+			if (file.Extension == ".scss") {
+				File.WriteAllText(BuildPath($"style\\{Path.GetFileNameWithoutExtension(file.Name)}.css"), Scss.ConvertFileToCss(file.FullName).Css);
+			} else {
+				file.CopyTo(BuildPath($"style\\{file.Name}"), true);
+			}
+		});
 
 		// Build pages
 		CreateBuildDirectory("posts");

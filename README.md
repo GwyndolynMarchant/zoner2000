@@ -7,11 +7,11 @@ Check out the original Zoner example site: <https://zone-builder.neocities.org/>
 ## Features
 
 - Simple drag and drop or command line build interface.
-- Write your pages in Markdown and let Zoner handle the HTML (or use HTML by itself).
+- Write your pages in Markdown and let Zoner2000 handle the HTML (or use HTML by itself).
 - Automatic RSS/Atom feed generation.
 - HTML layout optimized for screen readers.
-- Disqus comment support.
-- Backwards compatibility with existing Zonelets.
+- [Disqus](https://disqus.com/) comment support - (Allegedly, I haven't touched this since I forked from Ryan's version)
+- Backwards compatibility with existing [Zonelets](https://zonelets.net/legacy).
 - Support for YAML Frontmatter as used in [Deepdwn](https://support.deepdwn.com/docs/guide/getting-started/#organizing-your-files)
 	- Title
 	- Tags
@@ -19,6 +19,7 @@ Check out the original Zoner example site: <https://zone-builder.neocities.org/>
 	- Title
 	- Tags
 - Basic [XFN](https://gmpg.org/xfn/) support
+- Building [Sass](https://sass-lang.com/) stylesheets to CSS
 
 ## Build
 
@@ -31,4 +32,8 @@ Requires .NET 7.0 to build, does not require .NET libraries to run.
 
 ## Dependencies
 
-Zoner2000 makes use of [Markdig](https://github.com/xoofx/markdig) for Markdown processing and [HtmlAgilityPack](https://www.nuget.org/packages/HtmlAgilityPack/) for document manipulation.
+Zoner2000 makes use of:
+
+- [Markdig](https://github.com/xoofx/markdig) for Markdown processing
+- [HtmlAgilityPack](https://www.nuget.org/packages/HtmlAgilityPack/) for document manipulation.
+- [SharpSCSS](https://github.com/xoofx/SharpScss) for Sass conversion
