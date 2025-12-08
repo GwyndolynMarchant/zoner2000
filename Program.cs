@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
+
 using HtmlAgilityPack;
 using Markdig;
 using SharpScss;
@@ -52,6 +53,7 @@ class Program {
 		string header = "";
 		string footer = "";
 
+		// Default header which we will be modifying and injecting into
 		string head = """
 			<!DOCTYPE html>
 			<html prefix="og: https://ogp.me/ns#">
@@ -91,7 +93,10 @@ class Program {
 		}
 
 		// Configure the pipeline, adding Yaml Frontmatter support
-		var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().UseYamlFrontMatter().Build();
+		var pipeline = new MarkdownPipelineBuilder()
+			.UseAdvancedExtensions()
+			.UseYamlFrontMatter()
+		.Build();
 
 		while (directories.Count > 0) {
 			string directoryPath = directories.Dequeue();
@@ -424,6 +429,23 @@ class Program {
 
 					// Convert the markdown into an html document for further manipulation
 					fileContent = Markdown.ToHtml(markdown, pipeline);
+
+					// Look for any codeblocks and if there are any, load highlight.js into the file
+					MatchCollection codeBlocks = Regex.Matches(markdown, @"(?:```([\w+#]*)[\s\S]*?```)");
+					if (codeBlocks.Count > 0) {
+						Console.WriteLine($"[Zoner] Found {codeBlocks.Count} codeblocks.");
+						articleHeadNodes.Add("<link href=\"../style/highlight.css\" rel=\"stylesheet\" type=\"text/css\" media=\"all\">");
+						string highlightPreLoad = "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js\"></script>\n";
+						foreach (Match codeBlock in codeBlocks) {
+							for (int i = 1; i < codeBlock.Groups.Count; i++) {
+								Console.WriteLine($"[Zoner] Found codeblock with language: {codeBlock.Groups[i].Value}");
+								highlightPreLoad += $"<script src=\"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/{codeBlock.Groups[i].Value}.min.js\"></script>";
+							}	
+						}
+						fileContent = $"{highlightPreLoad}\n{fileContent}\n<script>hljs.highlightAll();</script>";
+					}
+
+					// Load the HTML document into a DOM tree for examination
 					HtmlDocument document = LoadHtmlFromContent($"<html><body>{fileContent}</body></html>");
 					
 					// Move any further meta tags out
