@@ -20,12 +20,18 @@ Check out the original Zoner example site: <https://zone-builder.neocities.org/>
 	- Tags
 - Basic [XFN](https://gmpg.org/xfn/) support
 - Building [Sass](https://sass-lang.com/) stylesheets to CSS
+- Support for automated [RTA Labelling](https://www.rtalabel.org/?content=howto#individual) via [post tagging](#rta-tagging)
+
+### RTA Tagging
+To tag a post as "Restricted to Adults" place a tag in its [frontmatter](https://support.deepdwn.com/docs/guide/getting-started/#organizing-your-files) which begins with [the No One Under Eighteen emoji](https://emojipedia.org/no-one-under-eighteen): "🔞". Simply tagging with the emoji and nothing else is sufficient, but any tag will work as long as the first character in it is the emoji. For example, "🔞", "🔞 R18", "🔞 Adult", will all work, but "Pornographic 🔞" would not. This is part of a general convention I decided upon for my own organization system that emoji categorizers for tags must always begin the tag string. This also makes it rudimentary to work around if you do not wish to enable RTA tagging.
+
+The use of the RTA scheme specifically is not any sort of particularly principled decision-making, but simply one of ease as it seems a relatively commonly-accepted method of providing content restrictions.
 
 ## Build
 
 ```
 dotnet restore
-dotnet publish -c release -r <RUNTIME>
+dotnet publish -c release --self-contained true
 ```
 
 Requires .NET 7.0 to build, does not require .NET libraries to run.

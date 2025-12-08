@@ -405,6 +405,9 @@ class Program {
 						title = fm.Title;
 						try {
 							foreach (string tag in fm.Tags) {
+								if ((new StringInfo(tag)).SubstringByTextElements(0, 1) == "🔞") {
+									articleHeadNodes.Add("<meta name=\"RATING\" content=\"RTA-5042-1996-1400-1577-RTA\" />");
+								}
 								articleHeadNodes.Add(OpengraphProperty("tag", tag));
 							}
 						} catch (NullReferenceException e) {
