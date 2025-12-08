@@ -402,6 +402,7 @@ class Program {
 				}
 
 				void processMarkdown() {
+					bool isAdult = false;
 					string markdown = File.ReadAllText(filePath);
 
 					// Parse yaml frontmatter
@@ -412,6 +413,7 @@ class Program {
 							foreach (string tag in fm.Tags) {
 								if ((new StringInfo(tag)).SubstringByTextElements(0, 1) == "🔞") {
 									articleHeadNodes.Add("<meta name=\"RATING\" content=\"RTA-5042-1996-1400-1577-RTA\" />");
+									isAdult = true;
 								}
 								articleHeadNodes.Add(OpengraphProperty("tag", tag));
 							}
@@ -456,6 +458,23 @@ class Program {
 						fileContent = document.DocumentNode.InnerHtml;
 					} catch {
 						Console.WriteLine("[Zoner] No meta tags found");
+					}
+
+					// Look for images to use for Opengraph
+					if (!isAdult) {
+						try {
+							HtmlNodeCollection imgs = document.DocumentNode.SelectNodes("//img");
+							foreach (HtmlNode img in imgs) {
+								string imgSrc = img.GetAttributeValue("src", "");
+								if (Regex.IsMatch(imgSrc, @"https?:\/\/.+")) {
+									articleHeadNodes.Add($"<meta property='og:image' content='{imgSrc}' />");
+								} else {
+									Console.WriteLine("[Zoner] No absolutely pathed images found. OpenGraph image must be set manually.");
+								}
+							}
+						} catch {
+							Console.WriteLine("[Zoner] No images found.");
+						}
 					}
 				}
 

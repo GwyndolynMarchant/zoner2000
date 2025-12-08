@@ -18,10 +18,15 @@ Check out the original Zoner example site: <https://zone-builder.neocities.org/>
 - [Open Graph Protocol](https://ogp.me/) support with automatic generation of:
 	- Title
 	- Tags
+	- Images<sup>1</sup>
 - Basic [XFN](https://gmpg.org/xfn/) support
 - Building [Sass](https://sass-lang.com/) stylesheets to CSS
 - Support for automated [RTA Labelling](https://www.rtalabel.org/?content=howto#individual) via [post tagging](#rta-tagging)
 - Dynamically linked syntax highlighting
+
+---
+
+<sup>1</sup> Images are only added to the OGP header if the article is [not tagged RTA](#rta-tagging), and if the images are absolutely linked (not relative).
 
 ### RTA Tagging
 To tag a post as "Restricted to Adults" place a tag in its [frontmatter](https://support.deepdwn.com/docs/guide/getting-started/#organizing-your-files) which begins with [the No One Under Eighteen emoji](https://emojipedia.org/no-one-under-eighteen): "🔞". Simply tagging with the emoji and nothing else is sufficient, but any tag will work as long as the first character in it is the emoji. For example, "🔞", "🔞 R18", "🔞 Adult", will all work, but "Pornographic 🔞" would not. This is part of a general convention I decided upon for my own organization system that emoji categorizers for tags must always begin the tag string. This also makes it rudimentary to work around if you do not wish to enable RTA tagging.
