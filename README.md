@@ -19,6 +19,7 @@ Check out the original Zoner example site: <https://zone-builder.neocities.org/>
 	- Title
 	- Tags
 	- Images<sup>1</sup>
+	- Description
 - Basic [XFN](https://gmpg.org/xfn/) support
 - Building [Sass](https://sass-lang.com/) stylesheets to CSS
 - Support for automated [RTA Labelling](https://www.rtalabel.org/?content=howto#individual) via [post tagging](#rta-tagging)
