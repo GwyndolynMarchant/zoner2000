@@ -567,8 +567,8 @@ class Program {
 					stringBuilder.Append("<nav id=\"nextprev\">");
 					int postIndex = PostItem.FindIndexOfPostWithTitle(allPosts, title);
 					if (postIndex > 0) {
-						Console.WriteLine("[Zoner] DEBUG: Post index: " + postIndex);
-						Console.WriteLine("[Zoner] DEBUG: Post length: " + allPosts.Count);
+						// Console.WriteLine("[Zoner] DEBUG: Post index: " + postIndex);
+						// Console.WriteLine("[Zoner] DEBUG: Post length: " + allPosts.Count);
 						string nextFileName = allPosts[postIndex - 1].Archive + ".html";
 						stringBuilder.Append("<a href=\"./" + RawName(nextFileName) + "\">« Next Post</a> | ");
 					}
@@ -584,6 +584,8 @@ class Program {
 						stringBuilder.Append(disqus + "\n");
 					}
 				}
+
+				// Close the article, add the footer, and close the document
 				stringBuilder.Append("</article>\n");
 				stringBuilder.Append((directoryPath == args[0] ? footer.Replace("\"../", "\"./") : footer.Replace("\"./", "\"../")));
 				stringBuilder.Append("</div>\n</body>\n</html>");
@@ -599,6 +601,11 @@ class Program {
 					styleLink.SetAttributeValue("href", originalStyle.Remove(lastStyleIndex, "style".Length).Insert(lastStyleIndex, styleNode.InnerText));
 					styleNode.Remove();
 				}
+
+				// Modify mail-to link for comments
+				HtmlNode footerMailto = finalDocument.DocumentNode.SelectSingleNode("//footer//a[contains(@href,'mailto:')]");
+				string originalMailto = footerMailto.Attributes["href"].Value;
+				footerMailto.Attributes["href"].Value = originalMailto + "?subject=" + HttpUtility.UrlPathEncode("re: " + title) + "&body=" + HttpUtility.UrlPathEncode("(Replace this or I'll think you're a spammer.)");
 
 				// Generate RSS item for post if RSS is configured in header
 				if (rss != string.Empty && directoryPath != args[0]) {
