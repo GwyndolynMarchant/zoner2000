@@ -605,6 +605,14 @@ class Program {
 				// Modify mail-to link for comments
 				HtmlNode footerMailto = finalDocument.DocumentNode.SelectSingleNode("//footer//a[contains(@href,'mailto:')]");
 				string originalMailto = footerMailto.Attributes["href"].Value;
+				string authorEmail = "";
+					if (authorEmail == "") {
+					try {
+						authorEmail = originalMailto.Split(':')[1];
+					} catch {
+						Console.WriteLine("[Zoner] Didn't find an author email in the footer, so not bothering extracting it.");
+					}
+				}
 				footerMailto.Attributes["href"].Value = originalMailto + "?subject=" + HttpUtility.UrlPathEncode("re: " + title) + "&body=" + HttpUtility.UrlPathEncode("(Replace this or I'll think you're a spammer.)");
 
 				// Generate RSS item for post if RSS is configured in header
@@ -622,12 +630,15 @@ class Program {
 
 					rssArticleDescription = (rssArticleDescription.Length > 500 ? rssArticleDescription.Substring(0, 500 - 3) + "..." : rssArticleDescription);
 
+					string fileArchive = RawName(fileName);
 					stringBuilder.Clear();
 					stringBuilder.Append("\t<item>\n");
 					stringBuilder.Append("\t\t<title>" + title + "</title>\n");
 					stringBuilder.Append("\t\t<description>" + rssArticleDescription + "</description>\n");
-					stringBuilder.Append($"\t\t<link>{rssWebsiteLink}posts/{RawName(fileName)}.html</link>\n");
+					stringBuilder.Append($"\t\t<link>{rssWebsiteLink}posts/{fileArchive}.html</link>\n");
 					stringBuilder.Append("\t\t<pubDate>\n\t\t\t" + dateTime.ToString("ddd, dd MMM yyyy HH:mm:ss", CultureInfo.CreateSpecificCulture("en-US")) + " +0000\n\t\t</pubDate>\n");
+					stringBuilder.Append($"\t\t<guid isPermaLink=\"false\">{fileArchive}</guid>\n");
+					if (authorEmail != "") stringBuilder.Append($"\t\t<author>{authorEmail}</author>\n");
 					stringBuilder.Append("\t</item>\n\n");
 
 					rss += stringBuilder.ToString();
