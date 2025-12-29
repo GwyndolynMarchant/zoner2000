@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Web;
 
 using HtmlAgilityPack;
 using Markdig;
@@ -27,8 +28,14 @@ class Program {
 		return doc;
 	}
 
+	static string NaturalizeForHtml(string content) {
+		char[] trimChars = {' ', '"'};
+		return HttpUtility.HtmlAttributeEncode(content.Trim(trimChars));
+	}
+
 	static string OpengraphProperty(string property, string content) {
-		return $"<meta property='og:{property}' content='{content}'/>";
+		
+		return $"<meta property='og:{property}' content='{NaturalizeForHtml(content)}'/>";
 	}
 
 	private static StringBuilder stringBuilder = new StringBuilder();
@@ -408,7 +415,7 @@ class Program {
 					// Parse yaml frontmatter
 					try {
 						FrontMatter fm = postFrontMatter[RawName(fileName)];
-						title = fm.Title;
+						title = NaturalizeForHtml(fm.Title);
 						try {
 							foreach (string tag in fm.Tags) {
 								if ((new StringInfo(tag)).SubstringByTextElements(0, 1) == "🔞") {
