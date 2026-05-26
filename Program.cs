@@ -13,6 +13,22 @@ using SharpScss;
 using Zoner;
 using Deepdwn;
 
+class NodeCatalog {
+	public List<string> nodes = new List<string>();
+
+	public void Append(HtmlNodeCollection added) {
+		if (added != null) {
+			foreach (HtmlNode node in added) {
+				nodes.Add(node.OuterHtml);
+			}
+		}
+	}
+
+	public void Append(string node) {
+		nodes.Add(node);
+	}
+}
+
 class Program {
 	static string RawName(string fileName) { return fileName.Contains('_') ? fileName.Split('_')[0] : fileName; }
 
@@ -41,7 +57,6 @@ class Program {
 	private static StringBuilder stringBuilder = new StringBuilder();
 
 	static void Main(string[] args) {
-
 		if (args.Length < 1) {
 			throw new ApplicationException("Oops! Please provide a path to your zone source, you can do this by dragging and dropping a zone source folder onto this executable.");
 		}
@@ -86,15 +101,8 @@ class Program {
 
 		string disqus = string.Empty;
 
-		List<string> universalHeadNodes = new List<string>();
-		List<string> articleHeadNodes = new List<string>();
-		void AppendHeadNodes(List<string> headNodes, HtmlNodeCollection nodes) {
-			if (nodes != null) {
-				foreach (HtmlNode node in nodes) {
-					headNodes.Add(node.OuterHtml);
-				}
-			}
-		}
+		NodeCatalog universalHeadNodes = new NodeCatalog();
+		NodeCatalog articleHeadNodes = new NodeCatalog();
 
 		// Configure the pipeline, adding Yaml Frontmatter support
 		var pipeline = new MarkdownPipelineBuilder()
@@ -131,9 +139,9 @@ class Program {
 				if (!Directory.Exists(DirPath("images"))) {
 					Console.WriteLine("[Zoner] WARNING: You don't have an images folder containing a favicon; site will be built without one.");
 				} else if (File.Exists(DirPath("images\\favicon.ico"))) {
-					universalHeadNodes.Add("<link rel=\"icon\" href=\"../images/favicon.ico\" type=\"image/x-icon\"/>");
+					universalHeadNodes.Append("<link rel=\"icon\" href=\"../images/favicon.ico\" type=\"image/x-icon\"/>");
 				} else if (File.Exists(DirPath("images\\favicon.png"))) {
-					universalHeadNodes.Add("<link rel=\"icon\" href=\"../images/favicon.png\" type=\"image/x-icon\"/>");
+					universalHeadNodes.Append("<link rel=\"icon\" href=\"../images/favicon.png\" type=\"image/x-icon\"/>");
 				} else {
 					Console.WriteLine("[Zoner] WARNING: There's no favicon in your images folder; site will be built without one.");
 				}
@@ -201,13 +209,15 @@ class Program {
 					HtmlDocument headerFooterDocument = LoadHtmlFromContent(fileContent);
 
 					// Look for any meta tags and add them to the list of meta tags
-					AppendHeadNodes(universalHeadNodes, headerFooterDocument.DocumentNode.SelectNodes("//meta"));
+					universalHeadNodes.Append(headerFooterDocument.DocumentNode.SelectNodes("//meta"));
 
 					// Grab data for RSS if it exists
 					HtmlNode rssTitle = headerFooterDocument.DocumentNode.SelectSingleNode("//rss-title");
 					HtmlNode rssDescription = headerFooterDocument.DocumentNode.SelectSingleNode("//rss-description");
 					HtmlNode rssLink = headerFooterDocument.DocumentNode.SelectSingleNode("//rss-link");
 					if (rssTitle != null && rssDescription != null && rssLink != null) {
+						universalHeadNodes.Append($"<link rel='alternate' title='{rssTitle.InnerText}' type='application/atom+xml' href='{rssLink.InnerText}feed.xml'>");
+
 						stringBuilder.Clear();
 						stringBuilder.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<rss version=\"2.0\" xmlns:atom=\"http://www.w3.org/2005/Atom\">\n<channel>");
 						stringBuilder.Append($"\t<title>{rssTitle.InnerText}</title>\n");
@@ -425,10 +435,10 @@ class Program {
 							try {
 								foreach (string tag in post.Frontmatter.Tags) {
 									if ((new StringInfo(tag)).SubstringByTextElements(0, 1) == "🔞") {
-										articleHeadNodes.Add("<meta name=\"RATING\" content=\"RTA-5042-1996-1400-1577-RTA\" />");
+										articleHeadNodes.Append("<meta name=\"RATING\" content=\"RTA-5042-1996-1400-1577-RTA\" />");
 										isAdult = true;
 									}
-									articleHeadNodes.Add(OpengraphProperty("tag", tag));
+									articleHeadNodes.Append(OpengraphProperty("tag", tag));
 								}
 							} catch (NullReferenceException e) {
 								Console.WriteLine("[Zoner] No tags found for page.");
@@ -450,7 +460,7 @@ class Program {
 					MatchCollection codeBlocks = Regex.Matches(markdown, @"(?:```([\w+#]*)[\s\S]*?```)");
 					if (codeBlocks.Count > 0) {
 						Console.WriteLine($"[Zoner] Found {codeBlocks.Count} codeblocks.");
-						articleHeadNodes.Add("<link href=\"../style/highlight.css\" rel=\"stylesheet\" type=\"text/css\" media=\"all\">");
+						articleHeadNodes.Append("<link href=\"../style/highlight.css\" rel=\"stylesheet\" type=\"text/css\" media=\"all\">");
 						string highlightPreLoad = "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js\"></script>\n";
 						foreach (Match codeBlock in codeBlocks) {
 							for (int i = 1; i < codeBlock.Groups.Count; i++) {
@@ -468,7 +478,7 @@ class Program {
 					bool metaDescriptionFound = false;
 					try {
 						HtmlNodeCollection nodes = document.DocumentNode.SelectNodes("//meta");
-						AppendHeadNodes(articleHeadNodes, nodes);
+						articleHeadNodes.Append(nodes);
 						foreach (HtmlNode node in nodes) {
 							if (node.Attributes["property"].Value == "og:description") metaDescriptionFound = true;
 							node.Remove();
@@ -485,7 +495,7 @@ class Program {
 							foreach (HtmlNode img in imgs) {
 								string imgSrc = img.GetAttributeValue("src", "");
 								if (Regex.IsMatch(imgSrc, @"https?:\/\/.+")) {
-									articleHeadNodes.Add(OpengraphProperty("image", imgSrc));
+									articleHeadNodes.Append(OpengraphProperty("image", imgSrc));
 								} else {
 									Console.WriteLine("[Zoner] No absolutely pathed images found. OpenGraph image must be set manually.");
 								}
@@ -502,7 +512,7 @@ class Program {
 							string[] sentences = articleNode.InnerText.Split('.');
 							string metaDescription = sentences[0];
 							if (sentences.Length > 1) metaDescription = metaDescription + "." + sentences[1];
-							articleHeadNodes.Add(OpengraphProperty("description", metaDescription));
+							articleHeadNodes.Append(OpengraphProperty("description", metaDescription));
 						} catch (NullReferenceException e) {
 							Console.WriteLine("[Zoner] WARNING: No paragraphs found, if article is a list it will need a manual description set for Meta and RSS.");
 						}
@@ -533,17 +543,17 @@ class Program {
 				); 
 				HtmlNode titleNode = headDocument.DocumentNode.SelectSingleNode("//title");
 				titleNode.InnerHtml = titleNode.InnerHtml.Replace(titleNode.InnerHtml, title);
-				articleHeadNodes.Add(OpengraphProperty("title", title)); 	// Add opengraph title
-				articleHeadNodes.Add(OpengraphProperty("type", "article"));	// Add opengraph type
+				articleHeadNodes.Append(OpengraphProperty("title", title)); 	// Add opengraph title
+				articleHeadNodes.Append(OpengraphProperty("type", "article"));	// Add opengraph type
 				
 				// Add head nodes back in
-				foreach (string nodeString in universalHeadNodes) {
+				foreach (string nodeString in universalHeadNodes.nodes) {
 					headDocument.DocumentNode.SelectSingleNode("//head").AppendChild(HtmlNode.CreateNode(nodeString));	
 				}
-				foreach (string nodeString in articleHeadNodes) {
+				foreach (string nodeString in articleHeadNodes.nodes) {
 					headDocument.DocumentNode.SelectSingleNode("//head").AppendChild(HtmlNode.CreateNode(nodeString));
 				}
-				articleHeadNodes.Clear();
+				articleHeadNodes.nodes.Clear();
 
 				// Build page TODO: Replace all the link replacements with a single string one at the end instead of individually
 				stringBuilder.Clear();
